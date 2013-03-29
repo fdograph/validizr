@@ -43,7 +43,7 @@
                 return this.$form.submit();
             }
         },
-        isFormValid : function(){ return ! this.$form.find('.' + this.settings.notValidClass).length; },
+        isFormValid : function(){ return ! this.$form.find('.' + this.settings.notValidClass).length; }, // Inseguro, hay que mejorarlo.
         youAreNotValid : function( $input ){
             $input.addClass( this.settings.notValidClass ); 
             if( typeof( this.settings.notValidInputCallback ) === 'function' ) { return this.settings.notValidInputCallback( $input ); }
