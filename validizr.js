@@ -8,7 +8,7 @@
             notValidInputCallback : undefined, // funcion, lleva como parametro el $input
             notValidClass : 'invalid-input', // string, clase a aplicar a los inputs no validos
             aditionalInputs : undefined, // jQuery Object, coleccion de campos no estandar para agregar a la validacion, por ejemplo, un fake select. Usa $.add()
-            customValidations : {} // objeto, prototipo para las validaciones customizadas.
+            customValidations : {} // objeto, prototipo para las validaciones customizadas. 
         };
         this.$form = $( formulario );
         this.settings = $.extend(true, {}, this.defaults, options);
