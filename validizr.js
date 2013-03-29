@@ -60,5 +60,17 @@
         });
     };
     
-    $(window.document).ready(function(){ $('#login-form').validizr(); });
+    // uso
+    $(window.document).ready(function(){ 
+        $('#login-form').validizr({
+            delegateFields : true, // bool, controla la delegacion de la validacion en los campos
+            delegateBtn : true, // bool, controla la delegacion de la validacion en el submitBtn
+            submitBtn : undefined, // jQuery object, $('#ejemplo')
+            validFormCallback : undefined, // funcion, lleva como parametro el $formulario
+            notValidInputCallback : undefined, // funcion, lleva como parametro el $input
+            notValidClass : 'invalid-input', // string, clase a aplicar a los inputs no validos
+            aditionalInputs : undefined, // jQuery Object, coleccion de campos no estandar para agregar a la validacion, por ejemplo, un fake select. Usa $.add()
+            customValidations : {} // objeto, prototipo para las validaciones customizadas. 
+        }); 
+    });
 }( this, jQuery ));
