@@ -1,52 +1,98 @@
 (function( window, $, undefined ){
+    "use strict";
     window.Validizr = function( formulario, options ){
         this.defaults = {
-            delegateFields : true, // bool, controla la delegacion de la validacion en los campos
+            delegateFields_change : true, // bool, controla la delegacion de la validacion en los campos
+            delegateFields_keyup : true, // bool, controla la delegacion de la validacion en los campos
+            delegateFields_custom : undefined, // string, controla la delegacion de la validacion en los campos
             delegateBtn : true, // bool, controla la delegacion de la validacion en el submitBtn
             submitBtn : undefined, // jQuery object, $('#ejemplo')
+            disableBtn : true, // bool, controla si se le pone o no la prop disabled al submitBtn
             validFormCallback : undefined, // funcion, lleva como parametro el $formulario
+            notValidFormCallBack : undefined, // funcion, lleva como parametro el $formulario
+            validInputCallback : undefined, // funcion, lleva como parametro el $input
             notValidInputCallback : undefined, // funcion, lleva como parametro el $input
+            preValidation : undefined, // funcion, lleva como parametro el $formulario y el $input
+            postValidation : undefined, // funcion, lleva como parametro el $formulario y el $input
             notValidClass : 'invalid-input', // string, clase a aplicar a los inputs no validos
-            aditionalInputs : undefined, // jQuery Object, coleccion de campos no estandar para agregar a la validacion, por ejemplo, un fake select. Usa $.add()
-            customValidations : {} // objeto, prototipo para las validaciones customizadas. 
+            aditionalInputs : undefined, // string, selector para inputs customizados
+            customValidations : {}, // objeto, prototipo para las validaciones customizadas. 
+            customErrorHandlers : {} // objeto, prototipo para los errores customizados. 
         };
-        this.$form = $( formulario );
         this.settings = $.extend(true, {}, this.defaults, options);
         this.emailRegEx = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
+        this.fields = 'input:not([type="submit"]), select, textarea' + ( this.settings.aditionalInputs ? ', ' + this.settings.aditionalInputs : '' );
+        this.$form = $( formulario );
+        this.$fieldsGroup = $( this.fields );
         this.$submitBtn = this.settings.submitBtn ? this.settings.submitBtn : this.$form.find('input[type="submit"]');
-        this.$fields = this.$form.find('input:not([type="submit"]), select, textarea');
-        if( this.settings.aditionalInputs ){ this.$fields = this.$fields.add( this.settings.aditionalInputs ); }
+        
+        var events = '';
+        
+        if( this.settings.delegateFields_change ){ events += 'change.validizr '; }
+        if( this.settings.delegateFields_keyup ){ events += 'keyup.validizr '; }
+        if( this.settings.delegateFields_custom ){ events += this.settings.delegateFields_custom; }
         
         // se empieza a delegar, depende de los settings
-        if( this.settings.delegateFields ){ this.$fields.on('change.validizr keyup.validizr', $.proxy( this.validateInput, this ) ); }
-        if( this.settings.delegateBtn ){ this.$submitBtn.on('click.validizr', $.proxy( this.validateForm, this ) ); }
+        if( this.settings.delegateFields_change || this.settings.delegateFields_keyup || this.settings.delegateFields_custom ){ this.$form.on(events, this.fields, {validizr : this}, this.validateInput ); }
+        if( this.settings.delegateBtn ){ this.$submitBtn.on('click.validizr', {validizr : this}, this.validateForm ); }
+        if( this.settings.disableBtn ){ this.$submitBtn.addClass('disabled').prop('disabled', true); }
     };
     window.Validizr.prototype = {
         validateInput : function( event ){
-            var $input = $(event.currentTarget),
-                inputType = this.getInputType($input),
+            var validizr = event.data.validizr,
+                $input = $(this),
+                inputType = validizr.getInputType($input),
                 value = $input.val(),
                 customHandler = $input.data('custom-validation'),
-                genericValidity = inputType === 'email' ? value && this.emailRegEx.test( value ) : value,
-                isValidInput = customHandler && typeof( this.settings.customValidations[ customHandler ] ) === 'function' ? this.settings.customValidations[ customHandler ]( $input ) : genericValidity;
-            if( $input.hasClass( this.settings.notValidClass ) ){ $input.removeClass( this.settings.notValidClass ); }
-            if( ( $input.is('[required]') || $input.hasClass('required') ) && ! isValidInput ){ this.youAreNotValid( $input ); }    
+                genericValidity = inputType === 'email' ? value && validizr.emailRegEx.test( value ) : value,
+                isValidInput = customHandler && typeof( validizr.settings.customValidations[ customHandler ] ) === 'function' ? validizr.settings.customValidations[ customHandler ]( $input ) : genericValidity;
+            
+            if( $input.hasClass( validizr.settings.notValidClass ) ){ $input.removeClass( validizr.settings.notValidClass ); }
+            
+            if( typeof(validizr.settings.preValidation) === 'function' ){ validizr.settings.preValidation( validizr.$form, $input ); }
+            
+            if( ( $input.is('[required]') || $input.hasClass('required') ) && ! isValidInput ){ 
+                $input.data('input_validity', false);
+                validizr.youAreNotValid( $input, validizr ); 
+            }
+            else {
+                $input.data('input_validity', true);
+            }
+            
+            if( typeof(validizr.settings.postValidation) === 'function' ){ validizr.settings.postValidation( validizr.$form, $input ); }
                         
-            if( this.isFormValid() ){ this.$submitBtn.removeClass('disabled').prop('disabled', false); }
-            else { this.$submitBtn.addClass('disabled').prop('disabled', true); }
+            if( validizr.isFormValid( validizr ) && validizr.settings.disableBtn ){ validizr.$submitBtn.removeClass('disabled').prop('disabled', false); }
+            else if( validizr.settings.disableBtn ) { validizr.$submitBtn.addClass('disabled').prop('disabled', true); }
         },
         validateForm : function( event ){
             event.preventDefault();
-            this.$fields.trigger('change.validizr');
-            if( this.isFormValid() ){ 
-                if( typeof( this.settings.validFormCallback ) === 'function' ) { return this.settings.validFormCallback( this.$form ); }
-                return this.$form.submit();
+            var validizr = event.data.validizr;
+            validizr.$fieldsGroup.trigger('change.validizr');
+            if( validizr.isFormValid( validizr ) ){ 
+                if( typeof( validizr.settings.validFormCallback ) === 'function' ) {
+                    return validizr.settings.validFormCallback( validizr.$form );
+                }
+                return validizr.$form.submit();
             }
+            else if( typeof( validizr.settings.notValidFormCallBack ) === 'function' ) {
+                return validizr.settings.notValidFormCallBack( validizr.$form );
+            }
+            
+            return false;
         },
-        isFormValid : function(){ return ! this.$form.find('.' + this.settings.notValidClass).length; }, // Inseguro, hay que mejorarlo.
-        youAreNotValid : function( $input ){
-            $input.addClass( this.settings.notValidClass ); 
-            if( typeof( this.settings.notValidInputCallback ) === 'function' ) { return this.settings.notValidInputCallback( $input ); }
+        isFormValid : function( validizr ){
+            var totalLength = validizr.$fieldsGroup.length,
+                validLength = validizr.$fieldsGroup.filter(function(){ return $(this).data('input_validity'); }).length,
+                softValidation = validizr.$form.find('.' + validizr.settings.notValidClass).length;
+        
+            return totalLength === validLength && !softValidation;
+        },
+        youAreNotValid : function( $input, validizr ){
+            var customHandler = $input.data('custom-error-validation');
+            
+            $input.addClass( validizr.settings.notValidClass );
+            if( typeof( validizr.settings.customErrorHandlers[ customHandler ] ) === 'function' ) { return validizr.settings.customErrorHandlers[ customHandler ]( $input ); }
+            if( typeof( validizr.settings.notValidInputCallback ) === 'function' ) { return validizr.settings.notValidInputCallback( $input ); }
         },
         getInputType : function( $input ){ return $input.attr('type') ? $input.attr('type') : $input.get(0).tagName.toLowerCase(); }
     };
@@ -59,18 +105,4 @@
             $element.data('validizr', validizr);
         });
     };
-    
-    // uso
-    $(window.document).ready(function(){ 
-        $('#login-form').validizr({
-            delegateFields : true, // bool, controla la delegacion de la validacion en los campos
-            delegateBtn : true, // bool, controla la delegacion de la validacion en el submitBtn
-            submitBtn : undefined, // jQuery object, $('#ejemplo')
-            validFormCallback : undefined, // funcion, lleva como parametro el $formulario
-            notValidInputCallback : undefined, // funcion, lleva como parametro el $input
-            notValidClass : 'invalid-input', // string, clase a aplicar a los inputs no validos
-            aditionalInputs : undefined, // jQuery Object, coleccion de campos no estandar para agregar a la validacion, por ejemplo, un fake select. Usa $.add()
-            customValidations : {} // objeto, prototipo para las validaciones customizadas. 
-        }); 
-    });
 }( this, jQuery ));
