@@ -23,7 +23,6 @@
         this.emailRegEx = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
         this.fields = 'input:not([type="submit"]), select, textarea' + ( this.settings.aditionalInputs ? ', ' + this.settings.aditionalInputs : '' );
         this.$form = $( formulario );
-        this.$fieldsGroup = $( this.fields );
         this.$submitBtn = this.settings.submitBtn ? this.settings.submitBtn : this.$form.find('input[type="submit"]');
         
         var events = '';
@@ -44,9 +43,23 @@
                 inputType = validizr.getInputType($input),
                 value = $input.val(),
                 customHandler = $input.data('custom-validation'),
-                genericValidity = inputType === 'email' ? value && validizr.emailRegEx.test( value ) : value,
-                isValidInput = customHandler && typeof( validizr.settings.customValidations[ customHandler ] ) === 'function' ? validizr.settings.customValidations[ customHandler ]( $input ) : genericValidity;
-            
+                isValidInput = (function(){
+                    // si hay validacion customizada, se devuelve el resultado de esta
+                    if( typeof( validizr.settings.customValidations[ customHandler ] ) === 'function' ){ return validizr.settings.customValidations[ customHandler ]( $input ); }
+                    
+                    // se valida genericamente
+                    switch( inputType ){
+                        case 'email' :
+                            return value && validizr.emailRegEx.test( value );
+                            break;
+                        case 'checkbox' :
+                            return $input.prop('checked');
+                            break;
+                        default :
+                            return value;
+                            break;
+                    }
+                }());
             if( $input.hasClass( validizr.settings.notValidClass ) ){ $input.removeClass( validizr.settings.notValidClass ); }
             
             if( typeof(validizr.settings.preValidation) === 'function' ){ validizr.settings.preValidation( validizr.$form, $input ); }
@@ -67,7 +80,7 @@
         validateForm : function( event ){
             event.preventDefault();
             var validizr = event.data.validizr;
-            validizr.$fieldsGroup.trigger('change.validizr');
+            validizr.$form.find( validizr.fields ).trigger('change.validizr');
             if( validizr.isFormValid( validizr ) ){ 
                 if( typeof( validizr.settings.validFormCallback ) === 'function' ) {
                     return validizr.settings.validFormCallback( validizr.$form );
@@ -81,8 +94,9 @@
             return false;
         },
         isFormValid : function( validizr ){
-            var totalLength = validizr.$fieldsGroup.length,
-                validLength = validizr.$fieldsGroup.filter(function(){ return $(this).data('input_validity'); }).length,
+            var $fieldsGroup = validizr.$form.find( validizr.fields ),
+                totalLength = $fieldsGroup.length,
+                validLength = $fieldsGroup.filter(function(){ return $(this).data('input_validity'); }).length,
                 softValidation = validizr.$form.find('.' + validizr.settings.notValidClass).length;
         
             return totalLength === validLength && !softValidation;
