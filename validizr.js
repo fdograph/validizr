@@ -25,7 +25,7 @@
         this.$form = $( formulario );
         this.$submitBtn = this.settings.submitBtn ? this.settings.submitBtn : this.$form.find('input[type="submit"]');
         
-        var events = '';
+        var events = 'validateInput.validizr ';
         
         if( this.settings.delegateFields_change ){ events += 'change.validizr '; }
         if( this.settings.delegateFields_keyup ){ events += 'keyup.validizr '; }
@@ -33,8 +33,11 @@
         
         // se empieza a delegar, depende de los settings
         if( this.settings.delegateFields_change || this.settings.delegateFields_keyup || this.settings.delegateFields_custom ){ this.$form.on(events, this.fields, {validizr : this}, this.validateInput ); }
-        if( this.settings.delegateBtn ){ this.$submitBtn.on('click.validizr', {validizr : this}, this.validateForm ); }
+        // if( this.settings.delegateBtn ){ this.$submitBtn.on('click.validizr', {validizr : this}, this.validateForm ); }
         if( this.settings.disableBtn ){ this.$submitBtn.addClass('disabled').prop('disabled', true); }
+
+        this.$form.on('submit.validizr', {validizr : this}, this.validateForm);
+        this.$form.attr({ 'data-validizr-handled' : 'true', 'novalidate' : true });
     };
     window.Validizr.prototype = {
         validateInput : function( event ){
@@ -78,23 +81,27 @@
             else if( validizr.settings.disableBtn ) { validizr.$submitBtn.addClass('disabled').prop('disabled', true); }
         },
         validateForm : function( event ){
-            event.preventDefault();
+            // event.preventDefault();
             var validizr = event.data.validizr;
-            validizr.$form.find( validizr.fields ).trigger('change.validizr');
-            if( validizr.isFormValid( validizr ) ){ 
+
+            validizr.$form.find( validizr.fields ).trigger('validateInput.validizr');
+
+            if( validizr.isFormValid() ){ 
                 if( typeof( validizr.settings.validFormCallback ) === 'function' ) {
                     return validizr.settings.validFormCallback( validizr.$form );
                 }
-                return validizr.$form.submit();
+                return true;
             }
             else if( typeof( validizr.settings.notValidFormCallBack ) === 'function' ) {
-                return validizr.settings.notValidFormCallBack( validizr.$form );
+                validizr.settings.notValidFormCallBack( validizr.$form );
+                return false;
             }
             
             return false;
         },
-        isFormValid : function( validizr ){
-            var $fieldsGroup = validizr.$form.find( validizr.fields ),
+        isFormValid : function(){
+            var validizr = this,
+                $fieldsGroup = validizr.$form.find( validizr.fields ),
                 totalLength = $fieldsGroup.length,
                 validLength = $fieldsGroup.filter(function(){ return $(this).data('input_validity'); }).length,
                 softValidation = validizr.$form.find('.' + validizr.settings.notValidClass).length;
@@ -108,7 +115,10 @@
             if( typeof( validizr.settings.customErrorHandlers[ customHandler ] ) === 'function' ) { return validizr.settings.customErrorHandlers[ customHandler ]( $input ); }
             if( typeof( validizr.settings.notValidInputCallback ) === 'function' ) { return validizr.settings.notValidInputCallback( $input ); }
         },
-        getInputType : function( $input ){ return $input.attr('type') ? $input.attr('type') : $input.get(0).tagName.toLowerCase(); }
+        getInputType : function( $input ){ return $input.attr('type') ? $input.attr('type') : $input.get(0).tagName.toLowerCase(); },
+        removeSubmitListener : function(){
+            this.$form.off('submit.validizr');
+        }
     };
     
     $.fn.validizr = function( options ) {
