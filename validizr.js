@@ -20,7 +20,7 @@
             customErrorHandlers : {} // objeto, prototipo para los errores customizados. 
         };
         this.settings = $.extend(true, {}, this.defaults, options);
-        this.emailRegEx = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
+        // this.emailRegEx = /[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?/;
         this.fields = 'input:not([type="submit"]), select, textarea' + ( this.settings.aditionalInputs ? ', ' + this.settings.aditionalInputs : '' );
         this.$form = $( formulario );
         this.$submitBtn = this.settings.submitBtn ? this.settings.submitBtn : this.$form.find('input[type="submit"]');
