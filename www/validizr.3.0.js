@@ -111,7 +111,7 @@
         }
 
         this.emailRegEx = new RegExp("[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?");
-        this.urlRegEx = new RegExp("^((http|https):\/\/(\w+:{0,1}\w*@)?(\S+)|)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$");
+        // this.urlRegEx = new RegExp("^((http|https):\/\/(\w+:{0,1}\w*@)?(\S+)|)(:[0-9]+)?(\/|\/([\w#!:.?+=&%@!\-\/]))?$");
 
         // cache selectors
         this.inputs_selector = 'input:not([type="submit"]):not([type="reset"]), select, textarea';
@@ -155,17 +155,20 @@
                 customHandler = input.getAttribute('data-custom-validation'),
                 value = input.value,
                 validInput = (function(){
-                    if( !input.required && !input.dataset.required && !input.classList.contains('required') ){ return true; }
+                    var isRequired = input.required || typeof input.getAttribute('required') !== 'undefined';
+                    if( !isRequired && !input.classList.contains('required') ){ return true; }
                     if( !!customHandler && typeof validizr.settings.customValidations[ customHandler ] === 'function' ){
                         return validizr.settings.customValidations[ customHandler ]( input );
                     }
                     switch( inputType ){
                         case 'email' : return !!value && validizr.emailRegEx.test( value );
-                        case 'url' : return !!value && validizr.urlRegEx.test( value );
+                        // case 'url' : return !!value && validizr.urlRegEx.test( value );
                         case 'checkbox' : return input.checked;
                         default : return !!value;
                     }
                 }());
+
+            console.log(validInput);
 
             if( input.classList.contains( validizr.settings.notValidClass ) || input.classList.contains( validizr.settings.validClass ) ){ 
                 input.classList.remove( validizr.settings.notValidClass ); 
@@ -242,7 +245,9 @@
         validate : function( selector ){
             var inputs = toRealArray( this.form.querySelectorAll( selector || this.inputs_selector ) );
             inputs.forEach(function( input ){
-                var validation_event = new Event('validizrValidate', { 'bubbles': true, 'cancelable': true });
+                // var validation_event = new Event('validizrValidate', { 'bubbles': true, 'cancelable': true });
+                var validation_event = document.createEvent("Event");
+                validation_event.initEvent("validizrValidate", true, true);
                 input.dispatchEvent( validation_event );
             });
         },
