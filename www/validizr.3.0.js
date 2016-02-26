@@ -250,6 +250,8 @@
                 validation_event.initEvent("validizrValidate", true, true);
                 input.dispatchEvent( validation_event );
             });
+
+            return this.getStatus();
         },
         getStatus : function(){
             var fields = toRealArray( this.form.querySelectorAll( this.inputs_selector ) );

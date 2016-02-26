@@ -1,0 +1,46 @@
+<!doctype html>
+<html class="no-js" lang="es">
+    <head>
+        <meta charset="utf-8">
+
+        <title>Validizr</title>
+        <meta name="description" content="">
+        <meta name="HandheldFriendly" content="True">
+        <meta name="MobileOptimized" content="320">
+        <meta name="viewport" content="width=device-width user-scalable=0">
+        <link rel="apple-touch-icon-precomposed" sizes="114x114" href="img/h/apple-touch-icon.png">
+        <link rel="apple-touch-icon-precomposed" sizes="72x72" href="img/m/apple-touch-icon.png">
+        <link rel="apple-touch-icon-precomposed" href="img/l/apple-touch-icon-precomposed.png">
+        <link rel="shortcut icon" href="img/l/apple-touch-icon.png">
+        <meta http-equiv="cleartype" content="on">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        
+        <link rel="stylesheet" href="css/style.css">
+    </head>
+    <body>
+        
+        <script>
+            var ingredientes = [
+                'carne', 'cebolla', 'champignon', 'choclo', 'chorizo', 'jamon', 'peperoni', 'piña', 'pollo', 'salchicha itliana', 'bbq', 'tomate'
+            ];
+
+            var pizza = '',
+                index;
+
+            for( var i = 0; i < 3; ){
+                index = ingredientes[ Math.round( Math.random() * 10 ) ];
+
+                if( pizza != '' && pizza.lastIndexOf( index ) !== -1 ){
+                    continue;
+                }
+
+                pizza += ' - ' + index + "\n";
+                i++;
+            }
+
+
+            console.log( pizza );
+        </script>
+    </body>
+</html>
